@@ -64,12 +64,13 @@ p {
 form.item {
   text-align: center;
   margin-left: 20px;
+  margin-right: 20px;
 }
 
 button {
   min-height: 50px;
-  width: 50px;
-  border-radius: 50%;
+  min-width: 50px;
+  border-radius: 50px;
   border-color: transparent;
   background-color: #A683E3;
   color: #fff;
