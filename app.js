@@ -47,7 +47,7 @@ const item2 = new itemsModel({
 })
 
 const item3 = new itemsModel({
-  name: "<-- Click on the checkbox to delete an item"
+  name: "<-- Click to delete an item"
 })
 
 const defaultItems = [item1, item2, item3]
