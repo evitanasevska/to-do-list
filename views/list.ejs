@@ -19,16 +19,19 @@
             <li>Eat food</li> -->
 
       <!-- add new task by going through newListItem array -->
-      <% for( let i = 0; i < newListItem.length; i++ ) { %>
-        <div class="item">
-            <input type="checkbox">
-            <p><%= newListItem[i] %></p>
-        </div>
-      <% } %>
+      <% newListItem.forEach(item => { %>
+        <form action="/delete" method="post">
+          <div class="item">
+            <input type="checkbox" name="checkbox" value="<%= item._id %>" onChange="this.form.submit()">
+            <input type="hidden" name="listName" value="<%= listTitle %>">
+            <p><%= item.name %></p>
+          </div>
+        </form>
+      <% }) %>
 
       <form class="item" action="/" method="POST">
         <input type="text" name="newTask" placeholder="New Task" autocomplete="off"/>
-        <button class="btn" type="submit" name="list" value=<%= listTitle %> >+</button>
+        <button class="btn" type="submit" name="list" value="<%= listTitle %>">+</button>
       </form>
     </div>
 

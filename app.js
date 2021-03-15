@@ -5,6 +5,47 @@ app.listen(3000, function () {
   console.log("Server is up and running on port 3000.");
 });
 
+const _ = require("lodash")
+
+// //importing date module
+// const date = require(__dirname + "/date.js")
+
+//mongoose
+const mongoose = require("mongoose")
+mongoose.connect("mongodb+srv://admin:admin@cluster0.itj3w.mongodb.net/todoDB?retryWrites=true&w=majority", {useNewUrlParser: true, useUnifiedTopology: true})
+
+const itemsSchema = {
+  name: {
+    type: String,
+    required: true
+  }
+}
+
+const listSchema = {
+  name: {
+    type: String,
+    required: true
+  },
+  items: [itemsSchema]
+}
+
+const itemsModel = mongoose.model("item", itemsSchema)
+const listModel = mongoose.model("list", listSchema)
+
+const item1 = new itemsModel({
+  name: "Welcome to your TO DO LIST"
+})
+
+const item2 = new itemsModel({
+  name: "Hit the + button to add a new item"
+})
+
+const item3 = new itemsModel({
+  name: "<-- Click on the checkbox to delete an item"
+})
+
+const defaultItems = [item1, item2, item3]
+
 //body parser
 app.use(express.urlencoded({ extended: true }));
 
@@ -14,14 +55,11 @@ app.use(express.static("public"));
 //EJS templating activation
 app.set("view engine", "ejs");
 
-//importing date module
-const date = require(__dirname + "/date.js")
-
 //in order to add new task for the list
 //we must declare an array (cuz otherwise it overwrites every new task with the next new task) outside any methods
 //then we take the value from POST request & redirect to root route
 //then render the value and pass it to the HTML in GET request
-var tasks = ["Buy Food", "Cook food", "Eat food"];
+// var tasks = ["Buy Food", "Cook food", "Eat food"];
 
 app.get("/", function (req, res) {
   
@@ -38,11 +76,38 @@ app.get("/", function (req, res) {
   // var day = date()
 
   //get current date value from date.js module (multiple functions in module)
-  var day = date.getDate()
+  // var day = date.getDate()
 
   //EJS pass values to HTML
   //tasks array is regulated to print each element as new list item in ejs file
-  res.render("list", { listTitle: day, newListItem: tasks });
+  // res.render("list", { listTitle: day, newListItem: tasks });
+  
+  itemsModel.find(function(err, items){
+    if(items.length === 0){
+      itemsModel.insertMany(defaultItems, function(err){
+        if(err){
+          console.log(err)
+        }else{
+          console.log("Default items added successfully.")
+        }
+      })
+      //if there are no items it adds the defaults
+      //then redirects to home route, the if is not executed
+      //because now we have items in our array
+      //continues to else where it renders the default items on screen
+      res.redirect("/")
+    } else {
+      res.render("list", { listTitle: "Today", newListItem: items});
+    }
+  })
+
+  // itemsModel.updateOne({name: "<-- Click on the checkbox to delete an item"}, {name: "<-- Hit to delete item"}, function(err){
+  //   if(err){
+  //     console.log(err)
+  //   }else{
+  //     console.log("Item deleted successfully.")
+  //   }
+  // })
 
   // NOT IN USE!
   // initial day switching concept, later substituted by toLocaleDateString("en-US", options)
@@ -79,27 +144,74 @@ app.get("/", function (req, res) {
 
 app.post("/", function (req, res) {
   //take newTask value from HTML form
-  var task = req.body.newTask;
-  
-  if (req.body.list == "Work") {
-    //if req came from work list (we ge value from HTML button), then add task to Work List
-    workTasks.push(task);
-    //redirect to work route if we're adding a task to work list
-    res.redirect("/work")
+  const itemName = req.body.newTask;
+  const listName = _.lowerCase(req.body.list)
+
+  //pass item name and make new item 
+  const item = new itemsModel({
+    name: itemName
+  })
+
+  if (listName === "today"){
+  //add new item/task in table
+  item.save()
+  res.redirect("/")
   } else {
-    //append the value to the tasks array
-    tasks.push(task);
-    //redirect to root route GET method & render value
-    res.redirect("/");
-    //redirecting to home for regular list
+    listModel.findOne({name: listName}, function(err,foundList){
+      foundList.items.push(item)
+      foundList.save()
+      res.redirect("/" + listName)
+    })
   }
 }); 
 
-var workTasks = [];
+app.post("/delete", function(req,res){
+  const checkedItem = req.body.checkbox
+  const listName = _.lowerCase(req.body.listName)
 
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "Work List", newListItem: workTasks });
-});
+  if(listName === "today"){
+    itemsModel.findByIdAndRemove(checkedItem, function(err){
+      if(!err){
+        console.log("Checked item deleted successfully.")
+        res.redirect("/")
+      }
+    })
+  } else {
+    listModel.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedItem}}}, function(err, foundList){
+      if(!err){
+        res.redirect("/" + listName)
+      }
+    })
+  }
+})
+
+app.get("/:listName", function(req, res){
+  var routingListName = _.lowerCase(req.params.listName)
+
+  listModel.findOne({name: routingListName}, function(err, foundList){
+    if(!err){
+      if(!foundList){
+        //create new list
+        const list = new listModel({
+          name: routingListName,
+          items: defaultItems
+        })
+        list.save()
+        res.redirect("/" + routingListName)
+      }else{
+        //show existing list
+        // console.log("Exists!")
+        res.render("list", { listTitle: _.capitalize(foundList.name), newListItem: foundList.items});
+      }
+    }
+  })
+})
+
+// var workTasks = [];
+
+// app.get("/work", function (req, res) {
+//   res.render("list", { listTitle: "Work List", newListItem: workTasks });
+// });
 
 // app.post("/work", function (req, res) {
 //   var task = req.body.newTask;
@@ -107,7 +219,3 @@ app.get("/work", function (req, res) {
 //   res.redirect("/work");
 // });
 
-//about page
-app.get("/about",function(req, res){
-    res.render("about")
-})
