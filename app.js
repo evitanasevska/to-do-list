@@ -18,7 +18,7 @@ const _ = require("lodash")
 
 //mongoose
 const mongoose = require("mongoose")
-mongoose.connect("mongodb+srv://admin:admin@cluster0.itj3w.mongodb.net/todoDB?retryWrites=true&w=majority", {useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect("link to database", {useNewUrlParser: true, useUnifiedTopology: true})
 
 const itemsSchema = {
   name: {
